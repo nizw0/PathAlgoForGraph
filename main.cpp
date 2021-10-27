@@ -34,6 +34,8 @@ vector<ll> pick_best_exit(const vector<vector<ll>> &);
 
 vector<ll> pick_closest_exit(const vector<vector<ll>> &);
 
+vector<ll> pick_from_exit();
+
 void print_distance_to_exit(const vector<vector<ll>> &);
 
 void print_index_of_vertices(const vector<vector<string>> &);
@@ -299,7 +301,8 @@ int main() {
     // calculate
     vector<vector<ll>> vertices_distance_to_exit = calculate_shortest_path_to_exit();
     // vector<ll> result = pick_best_exit(vertices_distance_to_exit);
-    vector<ll> result = pick_closest_exit(vertices_distance_to_exit);
+    // vector<ll> result = pick_closest_exit(vertices_distance_to_exit);
+    vector<ll> result = pick_from_exit();
 
     // print for output
     // print_distance_to_exit(vertices_distance_to_exit);
@@ -422,6 +425,36 @@ vector<ll> pick_closest_exit(const vector<vector<ll>> &ar) {
                 if (res[p.first] != -1)
                     continue;
                 res[p.first] = exit_index;
+                break;
+            }
+        }
+    }
+    return res;
+}
+
+vector<ll> pick_from_exit() {
+    vector<ll> res(G.index_count, -1);
+    vector<queue<ll>> table(G.exit_count);
+    for (ll i = 0; i < G.exit_index.size(); i++)
+        table[i].push(G.exit_index[i]);
+    for (ll i = 0; i < G.index_count; i++) {
+        for (ll exit_index = 0; exit_index < G.exit_count; exit_index++) {
+            while (!table[exit_index].empty()) {
+                ll index = table[exit_index].front();
+                table[exit_index].pop();
+                if (!G.index_to_vertex[index]->connectable())
+                    res[index] = G.index_to_vertex[index]->type;
+                if (res[index] != -1)
+                    continue;
+                res[index] = exit_index;
+                if (G.index_to_vertex[index]->x > 0)
+                    table[exit_index].push(G.vertices[G.index_to_vertex[index]->x - 1][G.index_to_vertex[index]->y].index);
+                if (G.index_to_vertex[index]->x < G.row - 1)
+                    table[exit_index].push(G.vertices[G.index_to_vertex[index]->x + 1][G.index_to_vertex[index]->y].index);
+                if (G.index_to_vertex[index]->y > 0)
+                    table[exit_index].push(G.vertices[G.index_to_vertex[index]->x][G.index_to_vertex[index]->y - 1].index);
+                if (G.index_to_vertex[index]->y < G.col - 1)
+                    table[exit_index].push(G.vertices[G.index_to_vertex[index]->x][G.index_to_vertex[index]->y + 1].index);
                 break;
             }
         }
