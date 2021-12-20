@@ -244,35 +244,51 @@ public:
         return distance;
     }
 
-    class Astar_node {
+    class Node {
     public:
         ll index, g, h;
-        Astar_node *parent;
+        Node *parent;
 
-        Astar_node(ll index, ll g = 0, ll h = 0) : index(index), g(g), h(h), parent(nullptr) {};
+        Node(ll index, ll g = 0, ll h = 0) : index(index), g(g), h(h), parent(nullptr) {};
+
+
+        Node(ll index, ll g, ll h, Node& parent) : index(index), g(g), h(h), parent(&parent) {};
+
 
         ll length() {
             return g + h;
         }
+
+        static ll calculate_heuristic() {
+            return 0;
+        }
     };
 
-    vector<Astar_node> a_star(Astar_node const target) {
-        auto cmp = [](Astar_node a, Astar_node b) {
+    vector<Node> a_star(Node target) {
+        auto cmp = [](Node a, Node b) {
             return a.length() < b.length();
         };
-        priority_queue<Astar_node, vector<Astar_node>, decltype(cmp)> open(cmp);
-        set<Astar_node> closed;
-        Astar_node point(index, 0, 0);
+        priority_queue<Node, vector<Node>, decltype(cmp)> open(cmp);
+        set<Node> closed;
+        Node point(index, 0, 0);
         open.push(point);
         while (!open.empty()) {
             point = open.top();
             open.pop();
             if (point.index == target.index)
                 break;
-
+            // todo: fix it.
+            if (x > 0)
+                open.push(Node(G.vertices[x - 1][y].index, point.length(), 0, point));
+            if (x < G.row - 1)
+                open.push(Node(G.vertices[x + 1][y].index, point.length(), 0, point));
+            if (y > 0)
+                open.push(Node(G.vertices[x][y - 1].index, point.length(), 0, point));
+            if (y < G.col - 1)
+                open.push(Node(G.vertices[x][y + 1].index, point.length(), 0, point));
         }
-        vector<Astar_node> result;
-        Astar_node *p = &point;
+        vector<Node> result;
+        Node *p = &point;
         while (p) {
             result.push_back(*p);
             p = point.parent;
@@ -413,7 +429,7 @@ vector<ll> pick_closest_exit(const vector<vector<ll>> &ar) {
     for (ll i = 0; i < G.exit_count; i++) {
         for (ll j = 0; j < G.index_count; j++)
             table[i].push_back(make_pair(j, ar[i][j]));
-        sort(table[i].begin(), table[i].end(), [](pair<ll, ll> &a, pair<ll, ll> &b) {
+            sort(table[i].begin(), table[i].end(), [](pair<ll, ll> &a, pair<ll, ll> &b) {
             return a.second == b.second ? a.first > b.first : a.second > b.second;
         });
     }
