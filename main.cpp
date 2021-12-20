@@ -21,6 +21,8 @@ class Graph;
 
 class Vertex;
 
+class Node;
+
 
 void initial_vertices();
 
@@ -36,6 +38,8 @@ vector<ll> pick_closest_exit(const vector<vector<ll>> &);
 
 vector<ll> pick_from_exit();
 
+vector<vector<vector<Node>>> pick_from_astar();
+
 void print_distance_to_exit(const vector<vector<ll>> &);
 
 void print_index_of_vertices(const vector<vector<string>> &);
@@ -45,6 +49,31 @@ void print_index_of_vertices_for_file(const vector<vector<string>> &);
 void print_exit_of_vertices(const vector<ll> &);
 
 void print_exit_with_count(const vector<ll> &);
+
+void print_exit_with_astar(const vector<vector<vector<Node>>> &);
+
+
+class Node {
+public:
+    ll index, g, h;
+    Node *parent;
+
+
+    Node(ll index, ll g = 0, ll h = 0) : index(index), g(g), h(h), parent(nullptr) {};
+
+
+    Node(ll index, ll g, ll h, Node &parent) : index(index), g(g), h(h), parent(&parent) {};
+
+
+    ll length() const {
+        return g + h;
+    }
+
+
+    static ll calculate_heuristic(ll x, ll y, ll target_x, ll target_y) {
+        return llabs(x - target_x) + llabs(y - target_y);
+    }
+};
 
 
 class Graph {
@@ -244,54 +273,50 @@ public:
         return distance;
     }
 
-    class Node {
-    public:
-        ll index, g, h;
-        Node *parent;
 
-        Node(ll index, ll g = 0, ll h = 0) : index(index), g(g), h(h), parent(nullptr) {};
-
-
-        Node(ll index, ll g, ll h, Node& parent) : index(index), g(g), h(h), parent(&parent) {};
-
-
-        ll length() {
-            return g + h;
-        }
-
-        static ll calculate_heuristic() {
-            return 0;
-        }
-    };
-
-    vector<Node> a_star(Node target) {
+    vector<Node> a_star(ll target) {
         auto cmp = [](Node a, Node b) {
             return a.length() < b.length();
         };
+        ll target_x = G.index_to_vertex[target]->x, target_y = G.index_to_vertex[target]->y;
         priority_queue<Node, vector<Node>, decltype(cmp)> open(cmp);
-        set<Node> closed;
-        Node point(index, 0, 0);
+        set<ll> closed;
+        Node point(index, 0, llabs(target_x - x) + llabs(target_y - y));
         open.push(point);
+        bool flag = false;
         while (!open.empty()) {
             point = open.top();
             open.pop();
-            if (point.index == target.index)
+
+            if (closed.count(point.index))
+                continue;
+            closed.insert(point.index);
+
+            if (point.index == target) {
+                flag = true;
                 break;
-            // todo: fix it.
-            if (x > 0)
-                open.push(Node(G.vertices[x - 1][y].index, point.length(), 0, point));
-            if (x < G.row - 1)
-                open.push(Node(G.vertices[x + 1][y].index, point.length(), 0, point));
-            if (y > 0)
-                open.push(Node(G.vertices[x][y - 1].index, point.length(), 0, point));
-            if (y < G.col - 1)
-                open.push(Node(G.vertices[x][y + 1].index, point.length(), 0, point));
+            }
+            //todo: check pseudo code.
+            if (x > 0 and !closed.count(G.vertices[x - 1][y].index))
+                open.push(Node(G.vertices[x - 1][y].index, point.g + 1,
+                               Node::calculate_heuristic(x - 1, y, target_x, target_y), point));
+            if (x < G.row - 1 and !closed.count(G.vertices[x + 1][y].index))
+                open.push(Node(G.vertices[x + 1][y].index, point.g + 1,
+                               Node::calculate_heuristic(x + 1, y, target_x, target_y), point));
+            if (y > 0 and !closed.count(G.vertices[x][y - 1].index))
+                open.push(Node(G.vertices[x][y - 1].index, point.g + 1,
+                               Node::calculate_heuristic(x, y - 1, target_x, target_y), point));
+            if (y < G.col - 1 and !closed.count(G.vertices[x][y + 1].index))
+                open.push(Node(G.vertices[x][y + 1].index, point.g + 1,
+                               Node::calculate_heuristic(x, y + 1, target_x, target_y), point));
         }
         vector<Node> result;
-        Node *p = &point;
-        while (p) {
-            result.push_back(*p);
-            p = point.parent;
+        if (flag) {
+            Node *p = &point;
+            while (p) {
+                result.push_back(*p);
+                p = point.parent;
+            }
         }
         return result;
     }
@@ -318,13 +343,16 @@ int main() {
     vector<vector<ll>> vertices_distance_to_exit = calculate_shortest_path_to_exit();
     // vector<ll> result = pick_best_exit(vertices_distance_to_exit);
     // vector<ll> result = pick_closest_exit(vertices_distance_to_exit);
-    vector<ll> result = pick_from_exit();
+    // vector<ll> result = pick_from_exit();
+    vector<vector<vector<Node>>> result = pick_from_astar();
 
     // print for output
     // print_distance_to_exit(vertices_distance_to_exit);
     // print_index_of_vertices_for_file(G.print_with_circle_for_file());
-    print_exit_of_vertices(result);
-    print_exit_with_count(result);
+    // print_exit_of_vertices(result);
+    // print_exit_with_count(result);
+
+    print_exit_with_astar(result);
 
     return 0;
 }
@@ -429,7 +457,7 @@ vector<ll> pick_closest_exit(const vector<vector<ll>> &ar) {
     for (ll i = 0; i < G.exit_count; i++) {
         for (ll j = 0; j < G.index_count; j++)
             table[i].push_back(make_pair(j, ar[i][j]));
-            sort(table[i].begin(), table[i].end(), [](pair<ll, ll> &a, pair<ll, ll> &b) {
+        sort(table[i].begin(), table[i].end(), [](pair<ll, ll> &a, pair<ll, ll> &b) {
             return a.second == b.second ? a.first > b.first : a.second > b.second;
         });
     }
@@ -464,15 +492,31 @@ vector<ll> pick_from_exit() {
                     continue;
                 res[index] = exit_index;
                 if (G.index_to_vertex[index]->x > 0)
-                    table[exit_index].push(G.vertices[G.index_to_vertex[index]->x - 1][G.index_to_vertex[index]->y].index);
+                    table[exit_index].push(
+                            G.vertices[G.index_to_vertex[index]->x - 1][G.index_to_vertex[index]->y].index);
                 if (G.index_to_vertex[index]->x < G.row - 1)
-                    table[exit_index].push(G.vertices[G.index_to_vertex[index]->x + 1][G.index_to_vertex[index]->y].index);
+                    table[exit_index].push(
+                            G.vertices[G.index_to_vertex[index]->x + 1][G.index_to_vertex[index]->y].index);
                 if (G.index_to_vertex[index]->y > 0)
-                    table[exit_index].push(G.vertices[G.index_to_vertex[index]->x][G.index_to_vertex[index]->y - 1].index);
+                    table[exit_index].push(
+                            G.vertices[G.index_to_vertex[index]->x][G.index_to_vertex[index]->y - 1].index);
                 if (G.index_to_vertex[index]->y < G.col - 1)
-                    table[exit_index].push(G.vertices[G.index_to_vertex[index]->x][G.index_to_vertex[index]->y + 1].index);
+                    table[exit_index].push(
+                            G.vertices[G.index_to_vertex[index]->x][G.index_to_vertex[index]->y + 1].index);
                 break;
             }
+        }
+    }
+    return res;
+}
+
+
+vector<vector<vector<Node>>> pick_from_astar() {
+    vector<vector<vector<Node>>> res;
+    for (auto& index : G.exit_index) {
+        res.push_back(vector<vector<Node>>());
+        for (auto& target : G.pass_index) {
+            res.back().push_back(G.index_to_vertex[index]->a_star(target));
         }
     }
     return res;
@@ -548,4 +592,16 @@ void print_exit_with_count(const vector<ll> &ar) {
 
     for (auto &i : mp)
         cout << "出口 " << i.first << " 共有 " << i.second << " 個點\n";
+}
+
+void print_exit_with_astar(const vector<vector<vector<Node>>> &ar) {
+    for (auto& x : ar) {
+        for (auto& y : x) {
+            for (auto node : y) {
+                 cout << node.index << ' ';
+            }
+            cout << '\n';
+        }
+        cout << '\n';
+    }
 }
