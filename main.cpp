@@ -281,41 +281,51 @@ public:
         ll target_x = G.index_to_vertex[target]->x, target_y = G.index_to_vertex[target]->y;
         priority_queue<Node, vector<Node>, decltype(cmp)> open(cmp);
         set<ll> closed;
-        Node point(index, 0, llabs(target_x - x) + llabs(target_y - y));
-        open.push(point);
+        set<ll> count;
+        Node *point = new Node(index, 0, llabs(target_x - x) + llabs(target_y - y));
+        open.push(*point);
         bool flag = false;
         while (!open.empty()) {
-            point = open.top();
+            Node tmp = open.top();
+            point = new Node(tmp.index, tmp.g, tmp.h, *tmp.parent);
             open.pop();
 
-            if (closed.count(point.index))
+            if (closed.count(point->index) or !G.index_to_vertex[point->index]->connectable())
                 continue;
-            closed.insert(point.index);
+            closed.insert(point->index);
 
-            if (point.index == target) {
+            if (point->index == target) {
                 flag = true;
                 break;
             }
             //todo: check pseudo code.
-            if (x > 0 and !closed.count(G.vertices[x - 1][y].index))
-                open.push(Node(G.vertices[x - 1][y].index, point.g + 1,
-                               Node::calculate_heuristic(x - 1, y, target_x, target_y), point));
-            if (x < G.row - 1 and !closed.count(G.vertices[x + 1][y].index))
-                open.push(Node(G.vertices[x + 1][y].index, point.g + 1,
-                               Node::calculate_heuristic(x + 1, y, target_x, target_y), point));
-            if (y > 0 and !closed.count(G.vertices[x][y - 1].index))
-                open.push(Node(G.vertices[x][y - 1].index, point.g + 1,
-                               Node::calculate_heuristic(x, y - 1, target_x, target_y), point));
-            if (y < G.col - 1 and !closed.count(G.vertices[x][y + 1].index))
-                open.push(Node(G.vertices[x][y + 1].index, point.g + 1,
-                               Node::calculate_heuristic(x, y + 1, target_x, target_y), point));
+            if (x > 0 and !count.count(G.vertices[x - 1][y].index)) {
+                count.insert(G.vertices[x - 1][y].index);
+                open.push(Node(G.vertices[x - 1][y].index, point->g + 1,
+                               Node::calculate_heuristic(x - 1, y, target_x, target_y), *point));
+            }
+            if (x < G.row - 1 and !count.count(G.vertices[x + 1][y].index)) {
+                count.insert(G.vertices[x + 1][y].index);
+                open.push(Node(G.vertices[x + 1][y].index, point->g + 1,
+                               Node::calculate_heuristic(x + 1, y, target_x, target_y), *point));
+            }
+            if (y > 0 and !count.count(G.vertices[x][y - 1].index)) {
+                count.insert(G.vertices[x][y - 1].index);
+                open.push(Node(G.vertices[x][y - 1].index, point->g + 1,
+                               Node::calculate_heuristic(x, y - 1, target_x, target_y), *point));
+            }
+            if (y < G.col - 1 and !count.count(G.vertices[x][y + 1].index)) {
+                count.insert(G.vertices[x][y + 1].index);
+                open.push(Node(G.vertices[x][y + 1].index, point->g + 1,
+                               Node::calculate_heuristic(x, y + 1, target_x, target_y), *point));
+            }
         }
         vector<Node> result;
-        if (flag) {
-            Node *p = &point;
+        if (flag or !flag) {
+            Node *p = point;
             while (p) {
                 result.push_back(*p);
-                p = point.parent;
+                p = p->parent;
             }
         }
         return result;
