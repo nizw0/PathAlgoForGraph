@@ -276,7 +276,7 @@ public:
 
     vector<Node> a_star(ll target) {
         auto cmp = [](Node a, Node b) {
-            return a.length() < b.length();
+            return a.length() > b.length();
         };
         ll target_x = G.index_to_vertex[target]->x, target_y = G.index_to_vertex[target]->y;
         priority_queue<Node, vector<Node>, decltype(cmp)> open(cmp);
@@ -284,50 +284,47 @@ public:
         set<ll> count;
         Node *point = new Node(index, 0, llabs(target_x - x) + llabs(target_y - y));
         open.push(*point);
-        bool flag = false;
         while (!open.empty()) {
             Node tmp = open.top();
             point = new Node(tmp.index, tmp.g, tmp.h, *tmp.parent);
             open.pop();
-
             if (closed.count(point->index) or !G.index_to_vertex[point->index]->connectable())
                 continue;
+
+            ll point_x = G.index_to_vertex[point->index]->x, point_y = G.index_to_vertex[point->index]->y;
             closed.insert(point->index);
 
-            if (point->index == target) {
-                flag = true;
+            if (point->index == target)
                 break;
+
+            if (point_x > 0 and !count.count(G.vertices[point_x - 1][point_y].index)) {
+                count.insert(G.vertices[point_x - 1][point_y].index);
+                open.push(Node(G.vertices[point_x - 1][point_y].index, point->g + 1,
+                               Node::calculate_heuristic(point_x - 1, point_y, target_x, target_y), *point));
             }
-            //todo: check pseudo code.
-            if (x > 0 and !count.count(G.vertices[x - 1][y].index)) {
-                count.insert(G.vertices[x - 1][y].index);
-                open.push(Node(G.vertices[x - 1][y].index, point->g + 1,
-                               Node::calculate_heuristic(x - 1, y, target_x, target_y), *point));
+            if (point_x < G.row - 1 and !count.count(G.vertices[point_x + 1][point_y].index)) {
+                count.insert(G.vertices[point_x + 1][point_y].index);
+                open.push(Node(G.vertices[point_x + 1][point_y].index, point->g + 1,
+                               Node::calculate_heuristic(point_x + 1, point_y, target_x, target_y), *point));
             }
-            if (x < G.row - 1 and !count.count(G.vertices[x + 1][y].index)) {
-                count.insert(G.vertices[x + 1][y].index);
-                open.push(Node(G.vertices[x + 1][y].index, point->g + 1,
-                               Node::calculate_heuristic(x + 1, y, target_x, target_y), *point));
+            if (point_y > 0 and !count.count(G.vertices[point_x][point_y - 1].index)) {
+                count.insert(G.vertices[point_x][point_y - 1].index);
+                open.push(Node(G.vertices[point_x][point_y - 1].index, point->g + 1,
+                               Node::calculate_heuristic(point_x, point_y - 1, target_x, target_y), *point));
             }
-            if (y > 0 and !count.count(G.vertices[x][y - 1].index)) {
-                count.insert(G.vertices[x][y - 1].index);
-                open.push(Node(G.vertices[x][y - 1].index, point->g + 1,
-                               Node::calculate_heuristic(x, y - 1, target_x, target_y), *point));
-            }
-            if (y < G.col - 1 and !count.count(G.vertices[x][y + 1].index)) {
-                count.insert(G.vertices[x][y + 1].index);
-                open.push(Node(G.vertices[x][y + 1].index, point->g + 1,
-                               Node::calculate_heuristic(x, y + 1, target_x, target_y), *point));
+            if (point_y < G.col - 1 and !count.count(G.vertices[point_x][point_y + 1].index)) {
+                count.insert(G.vertices[point_x][point_y + 1].index);
+                open.push(Node(G.vertices[point_x][point_y + 1].index, point->g + 1,
+                               Node::calculate_heuristic(point_x, point_y + 1, target_x, target_y), *point));
             }
         }
         vector<Node> result;
-        if (flag or !flag) {
-            Node *p = point;
-            while (p) {
-                result.push_back(*p);
-                p = p->parent;
-            }
+        Node *p = point;
+        while (p) {
+            result.push_back(*p);
+            p = p->parent;
         }
+        reverse(result.begin(), result.end());
         return result;
     }
 };
