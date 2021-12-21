@@ -30,6 +30,8 @@ void load_data_to_graph();
 
 void create_connection();
 
+// calculate
+
 vector<vector<ll>> calculate_shortest_path_to_exit();
 
 vector<ll> pick_best_exit(const vector<vector<ll>> &);
@@ -38,7 +40,11 @@ vector<ll> pick_closest_exit(const vector<vector<ll>> &);
 
 vector<ll> pick_from_exit();
 
-vector<vector<vector<Node>>> pick_from_astar();
+vector<vector<vector<Node>>> pick_from_A_star();
+
+vector<vector<ll>> A_star_to_Dijkstra(vector<vector<vector<Node>>> &);
+
+// print
 
 void print_distance_to_exit(const vector<vector<ll>> &);
 
@@ -158,7 +164,7 @@ public:
         res.pop_back();
 
         // print graph
-        for (auto &x : res) for (auto &y : x) cout << y;
+        for (auto &x: res) for (auto &y: x) cout << y;
         cout << BLANK;
 
         return res;
@@ -215,7 +221,7 @@ public:
         res.pop_back();
 
         // print graph
-        for (auto &x : res) for (auto &y : x) cout << y;
+        for (auto &x: res) for (auto &y: x) cout << y;
         cout << BLANK;
 
         return res;
@@ -260,7 +266,7 @@ public:
             visited[u] = true;
 
 
-            for (auto &i : G.index_to_vertex[u]->adj) {
+            for (auto &i: G.index_to_vertex[u]->adj) {
                 ll v = i.first, weight = i.second;
 
                 // relax
@@ -351,15 +357,15 @@ int main() {
     // vector<ll> result = pick_best_exit(vertices_distance_to_exit);
     // vector<ll> result = pick_closest_exit(vertices_distance_to_exit);
     // vector<ll> result = pick_from_exit();
-    vector<vector<vector<Node>>> result = pick_from_astar();
+    vector<vector<vector<Node>>> result = pick_from_A_star();
 
     // print for output
     // print_distance_to_exit(vertices_distance_to_exit);
     // print_index_of_vertices_for_file(G.print_with_circle_for_file());
     // print_exit_of_vertices(result);
     // print_exit_with_count(result);
-
-    print_exit_with_astar(result);
+    print_distance_to_exit(A_star_to_Dijkstra(result));
+    // print_exit_with_astar(result);
 
     return 0;
 }
@@ -436,7 +442,7 @@ void create_connection() {
 // return each vertex's distance to exit.
 vector<vector<ll>> calculate_shortest_path_to_exit() {
     vector<vector<ll>> res;
-    for (auto &i : G.exit_index) {
+    for (auto &i: G.exit_index) {
         ll x = G.index_to_vertex[i]->x, y = G.index_to_vertex[i]->y;
         res.push_back(G.vertices[x][y].dijkstra());
     }
@@ -518,12 +524,23 @@ vector<ll> pick_from_exit() {
 }
 
 
-vector<vector<vector<Node>>> pick_from_astar() {
+vector<vector<vector<Node>>> pick_from_A_star() {
     vector<vector<vector<Node>>> res;
-    for (auto& index : G.exit_index) {
+    for (auto &index: G.exit_index) {
         res.push_back(vector<vector<Node>>());
-        for (auto& target : G.pass_index) {
+        for (auto &target: G.pass_index) {
             res.back().push_back(G.index_to_vertex[index]->a_star(target));
+        }
+    }
+    return res;
+}
+
+vector<vector<ll>> A_star_to_Dijkstra(vector<vector<vector<Node>>>& ar) {
+    vector<vector<ll>> res;
+    for (auto& x : ar) {
+        res.push_back(vector<ll>());
+        for (auto& y : x) {
+            res.back().push_back(y.size() - 1);
         }
     }
     return res;
@@ -532,9 +549,9 @@ vector<vector<vector<Node>>> pick_from_astar() {
 
 void print_distance_to_exit(const vector<vector<ll>> &ar) {
     for (ll i = 0; i < ar.size(); i++) {
-        for (auto &x : ar[i])
+        for (auto &x: ar[i])
             cout << setw(2) << setfill(' ') << (x == INF ? -1 : x) << ' ';
-        cout << " ---------- ?H " << G.exit_index[i] << " ?∞?X§f" << "\n";
+        cout << " ---------- from " << G.exit_index[i] << " exit" << "\n";
     }
     cout << BLANK;
 }
@@ -542,8 +559,8 @@ void print_distance_to_exit(const vector<vector<ll>> &ar) {
 
 void print_index_of_vertices(const vector<vector<string>> &ar) {
     ll count = 0;
-    for (const auto &i : ar) {
-        for (const auto &j : i) {
+    for (const auto &i: ar) {
+        for (const auto &j: i) {
             if (j == "\n" or j == "°U" or j == "°X")
                 cout << j;
             else if (j == "°?" or j == "°?") {
@@ -559,8 +576,8 @@ void print_index_of_vertices(const vector<vector<string>> &ar) {
 
 void print_index_of_vertices_for_file(const vector<vector<string>> &ar) {
     ll count = 0;
-    for (const auto &i : ar) {
-        for (const auto &j : i) {
+    for (const auto &i: ar) {
+        for (const auto &j: i) {
             if (j == "\n" or j == "|" or j == "°X")
                 cout << j;
             else if (j == "°?" or j == "°?") {
@@ -576,8 +593,8 @@ void print_index_of_vertices_for_file(const vector<vector<string>> &ar) {
 void print_exit_of_vertices(const vector<ll> &ar) {
     ll digit = 0;
     map<ll, ll> mp;
-    for (const auto &i : G.vertices) {
-        for (auto &j : i) {
+    for (const auto &i: G.vertices) {
+        for (auto &j: i) {
             if (j.type == OBSTRUCTION)
                 cout << OBSTRUCTION << ' ';
             else {
@@ -593,21 +610,22 @@ void print_exit_of_vertices(const vector<ll> &ar) {
 
 void print_exit_with_count(const vector<ll> &ar) {
     map<ll, ll> mp;
-    for (auto &i : ar)
+    for (auto &i: ar)
         if (i >= 0)
             mp[i]++;
 
-    for (auto &i : mp)
+    for (auto &i: mp)
         cout << "出口 " << i.first << " 共有 " << i.second << " 個點\n";
 }
 
 void print_exit_with_astar(const vector<vector<vector<Node>>> &ar) {
-    for (auto& x : ar) {
-        for (auto& y : x) {
-            for (auto node : y) {
-                 cout << node.index << ' ';
-            }
-            cout << '\n';
+    for (auto &x: ar) {
+        for (auto &y: x) {
+            cout << y.size() << '\n';
+//            for (auto node : y) {
+//                 cout << node.index << ' ';
+//            }
+//            cout << '\n';
         }
         cout << '\n';
     }
