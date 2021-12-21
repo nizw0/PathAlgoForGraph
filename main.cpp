@@ -59,6 +59,41 @@ void print_exit_with_count(const vector<ll> &);
 void print_exit_with_astar(const vector<vector<vector<Node>>> &);
 
 
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    // init
+    load_data_to_graph();
+    initial_vertices();
+
+    // print for input
+    // G.print_with_symbol();
+    // G.print_with_circle();
+    // G.print_with_circle_for_file();
+
+    // build
+    create_connection();
+
+    // calculate
+    vector<vector<ll>> vertices_distance_to_exit = calculate_shortest_path_to_exit();
+    // vector<ll> result = pick_best_exit(vertices_distance_to_exit);
+    // vector<ll> result = pick_closest_exit(vertices_distance_to_exit);
+    // vector<ll> result = pick_from_exit();
+    vector<vector<vector<Node>>> result = pick_from_A_star();
+
+    // print for output
+    print_distance_to_exit(vertices_distance_to_exit);
+    // print_index_of_vertices_for_file(G.print_with_circle_for_file());
+    // print_exit_of_vertices(result);
+    // print_exit_with_count(result);
+    print_distance_to_exit(A_star_to_Dijkstra(result));
+    // print_exit_with_astar(result);
+
+    return 0;
+}
+
+
 class Node {
 public:
     ll index, g, h;
@@ -290,6 +325,7 @@ public:
         set<ll> count;
         Node *point = new Node(index, 0, llabs(target_x - x) + llabs(target_y - y));
         open.push(*point);
+        bool flag = false;
         while (!open.empty()) {
             Node tmp = open.top();
             point = new Node(tmp.index, tmp.g, tmp.h, *tmp.parent);
@@ -300,8 +336,10 @@ public:
             ll point_x = G.index_to_vertex[point->index]->x, point_y = G.index_to_vertex[point->index]->y;
             closed.insert(point->index);
 
-            if (point->index == target)
+            if (point->index == target) {
+                flag = true;
                 break;
+            }
 
             if (point_x > 0 and !count.count(G.vertices[point_x - 1][point_y].index)) {
                 count.insert(G.vertices[point_x - 1][point_y].index);
@@ -325,50 +363,17 @@ public:
             }
         }
         vector<Node> result;
-        Node *p = point;
-        while (p) {
-            result.push_back(*p);
-            p = p->parent;
+        if (flag) {
+            Node *p = point;
+            while (p) {
+                result.push_back(*p);
+                p = p->parent;
+            }
+            reverse(result.begin(), result.end());
         }
-        reverse(result.begin(), result.end());
         return result;
     }
 };
-
-
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    // init
-    load_data_to_graph();
-    initial_vertices();
-
-    // print for input
-    // G.print_with_symbol();
-    // G.print_with_circle();
-    // G.print_with_circle_for_file();
-
-    // build
-    create_connection();
-
-    // calculate
-    vector<vector<ll>> vertices_distance_to_exit = calculate_shortest_path_to_exit();
-    // vector<ll> result = pick_best_exit(vertices_distance_to_exit);
-    // vector<ll> result = pick_closest_exit(vertices_distance_to_exit);
-    // vector<ll> result = pick_from_exit();
-    vector<vector<vector<Node>>> result = pick_from_A_star();
-
-    // print for output
-    // print_distance_to_exit(vertices_distance_to_exit);
-    // print_index_of_vertices_for_file(G.print_with_circle_for_file());
-    // print_exit_of_vertices(result);
-    // print_exit_with_count(result);
-    print_distance_to_exit(A_star_to_Dijkstra(result));
-    // print_exit_with_astar(result);
-
-    return 0;
-}
 
 
 void load_data_to_graph() {
@@ -528,19 +533,19 @@ vector<vector<vector<Node>>> pick_from_A_star() {
     vector<vector<vector<Node>>> res;
     for (auto &index: G.exit_index) {
         res.push_back(vector<vector<Node>>());
-        for (auto &target: G.pass_index) {
-            res.back().push_back(G.index_to_vertex[index]->a_star(target));
+        for (int i = 0; i < G.index_count; i++) {
+            res.back().push_back(G.index_to_vertex[index]->a_star(i));
         }
     }
     return res;
 }
 
-vector<vector<ll>> A_star_to_Dijkstra(vector<vector<vector<Node>>>& ar) {
+vector<vector<ll>> A_star_to_Dijkstra(vector<vector<vector<Node>>> &ar) {
     vector<vector<ll>> res;
-    for (auto& x : ar) {
+    for (auto &x: ar) {
         res.push_back(vector<ll>());
-        for (auto& y : x) {
-            res.back().push_back(y.size() - 1);
+        for (auto &y: x) {
+            res.back().push_back(y.empty() ? INF : y.size() - 1);
         }
     }
     return res;
